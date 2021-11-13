@@ -1,8 +1,17 @@
+/*
+ * 
+ * Librairie du CAN l'ADS1115 :
+ *      https://github.com/RobTillaart/ADS1X15
+ *      https://passionelectronique.fr/tutorial-ads1115/
+ *      https://cdn-learn.adafruit.com/downloads/pdf/adafruit-4-channel-adc-breakouts.pdf
+ * Librairie DS3231
+ * 
+ */
+
+
 #include "ADS1X15_ST.h"
-#include "MegunoLink.h"
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
-#include "WString.h"
 //-------------------------------------------------------
 // ADS115 PINS
 //-------------------------------------------------------
@@ -32,7 +41,8 @@ DR=2 : 32 SPS
 DR=3 : 64 SPS
 ********************************************/
 //                           0   1   2   3  
-const short sample_rate[4]={ 8,  16, 32, 64};
+const short sample_rate[4]      ={ 8,  16, 32, 64};
+const short sample_rate_prog[4] ={ 0,   1,  2,  4};
 #define sample_rate_sizeTab sizeof(sample_rate) / sizeof( short)
 #define DEFAULT_RATE 1    // 16HZ 
 short current_rate=DEFAULT_RATE;
@@ -47,7 +57,9 @@ short saved_rate=DEFAULT_RATE;
 16 (gain = 16)  ± 0.256 volts
 ********************************************/
 //                           0       1       2       3       4       5
-const float gain_value[6]={6.144 , 4.096 , 2.048 , 1.024 , 0.512 , 0.256};
+const float  gain_value[6]={6.144 , 4.096 , 2.048 , 1.024 , 0.512 , 0.256};  // Values to be displayed on LCD
+const uint8_t gain_prog[6]={  0   ,   1   ,   2   ,   4   ,   8   ,  16  };  // Values to be programmed into ADS
+
 #define gain_value_sizeTab sizeof(gain_value) / sizeof(float)
 #define DEFAULT_GAIN 3    // 16HZ 
 short current_gain=DEFAULT_GAIN;
@@ -85,19 +97,20 @@ void setup() {
   pinMode (alertReadyPin,   INPUT_PULLUP);
   
   // Initialisation de port série
-  Serial.begin(115200);
+  Serial.begin(230400);
 
   // ADS1115
   ADS.begin();
-  ADS.setGain(4);                           // +-1.024 
-  ADS.setMode(0);                           // 0=continous
-  ADS.setDataRate(1);                       // 1 = 16 SPS
-  ADS.setComparatorThresholdLow(0x0000 );   // MSB=0
-  ADS.setComparatorThresholdHigh(0x8000 );  // MSB=1
-  ADS.setComparatorQueConvert(0);           // trigger after One sample
-  //ADS.setComparatorLatch(0);
-  ADS.setWireClock(400000L);                // Clock I2C @ 0.4MHz
-  ADS.readADC(0);                           // Et on fait une lecture à vide, pour envoyer tous ces paramètres
+  ADS.setWireClock(400000L);                  // Clock I2C @ 0.4MHz
+  ADS.setGain(DEFAULT_GAIN);                  // +-1.024 
+//  ADS.setMode(0);                           // 0=continous
+//  ADS.setComparatorThresholdLow(0x0000 );   // MSB=0
+//  ADS.setComparatorThresholdHigh(0x8000 );  // MSB=1
+//  ADS.setComparatorQueConvert(0);           // trigger after One sample
+  ADS.setMode(1);                             // 0=continous
+  ADS.setDataRate(DEFAULT_RATE);              // 1 = 16 SPS
+
+  ADS.readADC(0);                             // Et on fait une lecture à vide, pour envoyer tous ces paramètres
 
   // ALERT/RDY pin will indicate when conversion is ready, to Arduino pin 2
   attachInterrupt(digitalPinToInterrupt(2), read_adc, RISING );
@@ -149,14 +162,19 @@ void loop() {
     Serial.println(LCD_SELECT_SAMPLE_RATE);
 
     
-      if (LCD_SELECT_SAMPLE_RATE==false) {   // Switch to Gain line 
+      if (LCD_SELECT_SAMPLE_RATE==false) {   // Switch to Gain line and validate current Rate line
         saved_rate=current_rate;
         lcd.setCursor(15, 0);
         lcd.print("*");
         print_char_lcd_clear_other('>',0,1);
+
         Serial.println("A");
-      }else{                          // Switch to Rate line 
+        ADS.setDataRate(sample_rate_prog[current_rate]);            // prog new data rate
+
+      }else{                          // Switch to Rate line and validate current Gain line
+
         saved_gain=current_gain;
+        ADS.setGain(gain_prog[current_gain]);     // prog new Gain                         
         lcd.setCursor(15, 1);
         lcd.print("*");
         print_char_lcd_clear_other('>',0,0);
@@ -164,7 +182,7 @@ void loop() {
       }
   
   } else {
-    // Rotate button 
+    // Rotate button right or left
     // => ajoute un garde-fou de 7.5sec sinon on passe ici sans rotation physique : bug boutton ?
     if ((clk_state_last == LOW) && (clk_state == HIGH) && millis() > 7500) {
       // Read rotary Data pin to know which direction increase/decrease new speed
@@ -212,9 +230,9 @@ void loop() {
         }
       }
       // Display new speed based on rotary button direction
-      Serial.print ("B/rate,gain:" );  //debug
-      Serial.println (current_rate );  //debug
-      Serial.println (current_gain );  //debug
+//      Serial.print ("B/rate,gain:" );  //debug
+//      Serial.println (current_rate );  //debug
+//      Serial.println (current_gain );  //debug
 
     } 
 
@@ -223,20 +241,35 @@ void loop() {
   }
   
   
-  if (DO_READ_ADC){
+//  if (DO_READ_ADC){
     //Serial.println(millis());
     //cv_start=micros();
+ 
+    potentiel_A0=ADS.readADC(0);
+    potentiel_A1=ADS.readADC(1);
+    potentiel_A2=ADS.readADC(2);
+    potentiel_A3=ADS.readADC(3);
+Serial.println(micros());
+    Serial.print("A0:");Serial.println(potentiel_A0);//Serial.println(ADS.toVoltage(potentiel_A0));
+Serial.println(micros());
+    Serial.print("A1:");Serial.println(potentiel_A1);//Serial.println(ADS.toVoltage(potentiel_A1));
+Serial.println(micros());
+    Serial.print("A2:");Serial.println(potentiel_A2);
+    Serial.print("A3:");Serial.println(potentiel_A3);
+//    Serial.print("A2:");Serial.println(ADS.toVoltage(potentiel_A2));
+//    Serial.print("A3:");Serial.println(ADS.toVoltage(potentiel_A3));
+        
     difference_potentiel_A0_A1 = ADS.readADC_Differential_0_1(); // read diff lane 0-1
     //ADS.readADC(0);  // read lane ain0
     //cv_end=micros();
     //Serial.println(cv_end-cv_start);
     //Serial.println(cv_end);
     DO_READ_ADC=false;
-  }
-  //  Serial.println(difference_potentiel_A0_A1); 
-  float tension_volts_A0_A1 = ADS.toVoltage(difference_potentiel_A0_A1);
-  Serial.print(tension_volts_A0_A1,6);    // On limite l'affichage à 3 chiffres après la virgule
-  //Serial.println("aaaa");
+   //  Serial.println(difference_potentiel_A0_A1); 
+  //float tension_volts_A0_A1 = ADS.toVoltage(difference_potentiel_A0_A1);
+  //Serial.println(tension_volts_A0_A1,6);    // On limite l'affichage à 3 chiffres après la virgule
+//  }
+
 }
 
 
@@ -268,7 +301,7 @@ void print_sentence_lcd (const String carTab, int col, int lg){
 // Interrupt function to start reading CAN value
 //-------------------------------------------------------
 void read_adc(){
-    //Serial.println(micros());
+    //Serial.println(millis());
     DO_READ_ADC =true;
 }
 
