@@ -2,7 +2,7 @@
 #include "MegunoLink.h"
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
-
+#include "WString.h"
 //-------------------------------------------------------
 // ADS115 PINS
 //-------------------------------------------------------
@@ -19,8 +19,6 @@
 // LCD 20x4 Declaration (i2c pins connexion)
 //-------------------------------------------------------
 LiquidCrystal_I2C lcd(0x27, 16, 2);
-#define POS_SAMPLE_RATE   10
-#define POS_GAIN          10
 
 //-------------------------------------------------------
 // CAN ADS 1115
@@ -55,22 +53,24 @@ const float gain_value[6]={6.144 , 4.096 , 2.048 , 1.024 , 0.512 , 0.256};
 short current_gain=DEFAULT_GAIN;
 short saved_gain=DEFAULT_GAIN;
 
-#define DS3231_I2C_ADDRESS 0x68
 int16_t potentiel_A0=0;
 int16_t potentiel_A1=0;
 int16_t potentiel_A2=0;
 int16_t potentiel_A3=0;
 int16_t difference_potentiel_A0_A1=0;
 int16_t difference_potentiel_A2_A3=0;
-bool DO_READ_ADC=false;
+bool DO_READ_ADC    =false;
 
 // Variables traitement bouton rotatif et click
 int clk_state_last      = LOW;            // Idle
 int clk_state           = LOW;            // Idle
 int button_state        = HIGH;           // Not pressed
-unsigned long button_millis_save = 0;
-unsigned long button_millis_cur = 0;
+unsigned long button_millis_save  = 0;
+unsigned long button_millis_cur   = 0;
 
+#define POS_SAMPLE_RATE   10            // Position sur LCD/colonne
+#define POS_GAIN          10            // Position sur LCD/colonne
+#define DS3231_I2C_ADDRESS 0x68
 
 //-------------------------------------------------------
 // SETUP
@@ -82,7 +82,7 @@ void setup() {
   pinMode (encoderClk,      INPUT);
   pinMode (encoderData,     INPUT);
   pinMode (encoderSwitch,   INPUT_PULLUP);
-  pinMode(alertReadyPin,    INPUT_PULLUP);
+  pinMode (alertReadyPin,   INPUT_PULLUP);
   
   // Initialisation de port série
   Serial.begin(115200);
@@ -97,7 +97,6 @@ void setup() {
   ADS.setComparatorQueConvert(0);           // trigger after One sample
   //ADS.setComparatorLatch(0);
   ADS.setWireClock(400000L);                // Clock I2C @ 0.4MHz
-  //ADS.setWireClock(1000000L);             // Clock I2C @ 1MHz
   ADS.readADC(0);                           // Et on fait une lecture à vide, pour envoyer tous ces paramètres
 
   // ALERT/RDY pin will indicate when conversion is ready, to Arduino pin 2
@@ -106,27 +105,23 @@ void setup() {
   // initialisation de l'afficheur / Message d'accueil
   lcd.init(); 
   lcd.backlight();
-  lcd.setCursor(0, 0);
-  lcd.print("Hello, Half-God!");
-  lcd.setCursor(1, 1);
-  lcd.print("Sample Sensors");
+  print_sentence_lcd("Hello, Half-God!",0,0);
+  print_sentence_lcd("Sample Sensors",1,1);
   delay(5000);
   lcd.clear();
   // Prepare LCD screen
-  lcd.setCursor(0, 0);
-  lcd.print(" Rate(Hz):      ");
-  lcd.setCursor(0, 1);
-  lcd.print(" Ampl(v) :      ");
+  // First Line
+  print_sentence_lcd(" Rate(Hz):      ",0,0);
   lcd.setCursor(POS_SAMPLE_RATE, 0);
   lcd.print(sample_rate[current_rate]);
+  print_char_lcd('>',0,0);
+  print_char_lcd('*',15,0);
+
+  // Second line
+  print_sentence_lcd(" Ampl(v) :      ",0,1);
   lcd.setCursor(POS_GAIN, 1);
   lcd.print(gain_value[current_gain],3);
-  lcd.setCursor(15, 0);
-  lcd.print("*");
-  lcd.setCursor(15, 1);
-  lcd.print("*");
-  lcd.setCursor(0, 0);
-  lcd.print(">");
+  print_char_lcd('*',15,1);
 
   // END setup
   Serial.println("EndofSetup");
@@ -144,7 +139,7 @@ void loop() {
   clk_state         = digitalRead(encoderClk);
   button_state      = digitalRead(encoderSwitch);
   button_millis_cur = millis();
-  
+
   // check state and add debouncer
   if (button_state == LOW && (button_millis_cur - button_millis_save)>300) {
     button_millis_save=millis();
@@ -152,31 +147,29 @@ void loop() {
 
     Serial.print("SELECT:");
     Serial.println(LCD_SELECT_SAMPLE_RATE);
-      if (LCD_SELECT_SAMPLE_RATE==true) {   // SAMPLE_RATE SELECTED
+
+    
+      if (LCD_SELECT_SAMPLE_RATE==false) {   // Switch to Gain line 
         saved_rate=current_rate;
         lcd.setCursor(15, 0);
         lcd.print("*");
-        lcd.setCursor(0, 0);
-        lcd.print(">");
-        lcd.setCursor(0, 1);
-        lcd.print(" ");
-      }else{
+        print_char_lcd_clear_other('>',0,1);
+        Serial.println("A");
+      }else{                          // Switch to Rate line 
         saved_gain=current_gain;
         lcd.setCursor(15, 1);
         lcd.print("*");
-        lcd.setCursor(0, 0);
-        lcd.print(" ");
-        lcd.setCursor(0, 1);
-        lcd.print(">");
+        print_char_lcd_clear_other('>',0,0);
+        Serial.println("B");
       }
   
   } else {
-    // Rotate button
-    if ((clk_state_last == LOW) && (clk_state == HIGH)) {
+    // Rotate button 
+    // => ajoute un garde-fou de 7.5sec sinon on passe ici sans rotation physique : bug boutton ?
+    if ((clk_state_last == LOW) && (clk_state == HIGH) && millis() > 7500) {
       // Read rotary Data pin to know which direction increase/decrease new speed
       // Act on correct LCD line
       if (LCD_SELECT_SAMPLE_RATE==true) {   // SAMPLE_RATE SELECTED
-        Serial.println(millis());
         if (digitalRead(encoderData) == LOW) {
           if (current_rate < (sample_rate_sizeTab-1))
             current_rate = current_rate + 1;
@@ -211,14 +204,17 @@ void loop() {
         lcd.print(gain_value[current_gain],3);
         lcd.setCursor(15, 1);
         if (current_gain==saved_gain) {
-          lcd.print("*");
+          //lcd.print("*");
+          print_char_lcd('*',15,1);
         }else{
-          lcd.print(" ");
+          //lcd.print(" ");
+          print_char_lcd(' ',15,1);
         }
       }
       // Display new speed based on rotary button direction
-      Serial.println (current_gain );  //debug
+      Serial.print ("B/rate,gain:" );  //debug
       Serial.println (current_rate );  //debug
+      Serial.println (current_gain );  //debug
 
     } 
 
@@ -227,7 +223,6 @@ void loop() {
   }
   
   
-/*  
   if (DO_READ_ADC){
     //Serial.println(millis());
     //cv_start=micros();
@@ -239,10 +234,34 @@ void loop() {
     DO_READ_ADC=false;
   }
   //  Serial.println(difference_potentiel_A0_A1); 
-  //float tension_volts_A0_A1 = ADS.toVoltage(difference_potentiel_A0_A1);
-  //Serial.print(tension_volts_A0_A1,6);    // On limite l'affichage à 3 chiffres après la virgule
+  float tension_volts_A0_A1 = ADS.toVoltage(difference_potentiel_A0_A1);
+  Serial.print(tension_volts_A0_A1,6);    // On limite l'affichage à 3 chiffres après la virgule
   //Serial.println("aaaa");
- */
+}
+
+
+//-------------------------------------------------------
+// Quelques fonctions pour le LCD
+//-------------------------------------------------------
+void print_char_lcd (char car, int col, int lg){
+  lcd.setCursor(col, lg);
+  lcd.print(car);
+}
+
+void print_char_lcd_clear_other (char car, int col, int lg){
+  int other=1;
+  if (lg==1) other=0;
+  // print char      
+  lcd.setCursor(col, lg);
+  lcd.print(car);
+  // clear other
+  lcd.setCursor(col, other);
+  lcd.print(' ');
+}
+
+void print_sentence_lcd (const String carTab, int col, int lg){
+  lcd.setCursor(col, lg);
+  lcd.print(carTab);
 }
 
 //-------------------------------------------------------
