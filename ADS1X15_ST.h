@@ -2,16 +2,17 @@
 //
 //    FILE: ADS1X15.H
 //  AUTHOR: Rob Tillaart
-// VERSION: 0.3.1
+// VERSION: 0.3.3
 //    DATE: 2013-03-24
 // PUPROSE: Arduino library for ADS1015 and ADS1115
 //     URL: https://github.com/RobTillaart/ADS1X15
 //
 
+
 #include "Arduino.h"
 #include "Wire.h"
 
-#define ADS1X15_LIB_VERSION               (F("0.3.1"))
+#define ADS1X15_LIB_VERSION               (F("0.3.3"))
 
 // allow compile time default address
 // address in { 0x48, 0x49, 0x4A, 0x4B }, no test...
@@ -80,7 +81,7 @@ public:
   void     requestADC(uint8_t pin);
   void     requestADC_Differential_0_1();
   bool     isBusy();
-  bool     isReady() { return isBusy() == false; };
+  bool     isReady();
 
 
   // COMPARATOR
@@ -101,7 +102,7 @@ public:
 
   // 0   = trigger alert after 1 conversion
   // 1   = trigger alert after 2 conversions
-  // 2   = trigegr alert after 4 conversions
+  // 2   = trigger alert after 4 conversions
   // 3   = Disable comparator =  default, also for all other values.
   void     setComparatorQueConvert(uint8_t mode) { _compQueConvert = (mode < 3) ? mode : 3; };
   uint8_t  getComparatorQueConvert()             { return _compQueConvert; };
@@ -115,7 +116,7 @@ public:
   int8_t   getError();
 
   void     setWireClock(uint32_t clockSpeed);
-  // proto - getWireClock returns the value set by setWireClock not perse the actual value
+  // proto - getWireClock returns the value set by setWireClock not necessary the actual value
   uint32_t getWireClock();
 
 protected:
@@ -140,11 +141,11 @@ protected:
   uint16_t _mode;
   uint16_t _datarate;
 
-  // COMPARATOR vars
-  // TODO merge these into one COMPARATOR MASK?  (low prio)
+  // COMPARATOR variables
+  // TODO merge these into one COMPARATOR MASK?  (low priority)
   //      would speed up code in _requestADC() and save 3 bytes RAM.
   // TODO boolean flags for first three, or make it mask value that 
-  //      can be or-ed.   (low prio)
+  //      can be or-ed.   (low priority)
   uint8_t  _compMode;
   uint8_t  _compPol;
   uint8_t  _compLatch;
