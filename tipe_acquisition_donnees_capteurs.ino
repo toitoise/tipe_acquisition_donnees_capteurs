@@ -61,13 +61,13 @@ DR=1 : 16 SPS
 DR=2 : 32 SPS
 DR=3 : 64 SPS
 ********************************************/
-//                           0   1   2   3  
-const short sample_rate[4]      ={ 8,  16, 32, 64};
-const short sample_rate_prog[4] ={ 0,   1,  2,  4};
+const short sample_rate[5]      ={ 8,  16, 32, 64, 128 };
+const short sample_rate_prog[5] ={ 0,   1,  2,  4,   8 };
 #define sample_rate_sizeTab sizeof(sample_rate) / sizeof( short)
-#define DEFAULT_RATE 0    // 8HZ 
-short current_rate=DEFAULT_RATE;
-short saved_rate=DEFAULT_RATE;
+#define DEFAULT_RATE_SINGLE 4           // 64HZ   (4 entrées)
+#define DEFAULT_RATE_DIFFERENTIAL 2     // 32HZ   (2 entrées)
+short current_rate;
+short saved_rate;
 
 /* Gain interne *****************************
 0 (gain = 2/3)  ± 6.144 volts 
@@ -86,12 +86,12 @@ const uint8_t gain_prog[6]={  0   ,   1   ,   2   ,   4   ,   8   ,  16  };  // 
 short current_gain=DEFAULT_GAIN;
 short saved_gain=DEFAULT_GAIN;
 
-int16_t CAN_value_A0=0;
-int16_t CAN_value_A1=0;
-int16_t CAN_value_A2=0;
-int16_t CAN_value_A3=0;
-int16_t difference_CAN_value_A0_A1=0;
-int16_t difference_CAN_value_A2_A3=0;
+uint16_t CAN_value_A0=0;              // Single Ended : only positive
+uint16_t CAN_value_A1=0;              // Single Ended : only positive
+uint16_t CAN_value_A2=0;              // Single Ended : only positive
+uint16_t CAN_value_A3=0;              // Single Ended : only positive
+int16_t  CAN_value_A0_A1=0;           // Differential : pos and neg
+int16_t  CAN_value_A2_A3=0;           // Differential : pos and neg
 int16_t CAN_value=0;
 
 bool DO_READ_ADC    =false;
@@ -105,6 +105,8 @@ unsigned long button_millis_cur   = 0;
 #define POS_SAMPLE_RATE   10            // Position sur LCD/colonne
 #define POS_GAIN          10            // Position sur LCD/colonne
 #define DS3231_I2C_ADDRESS 0x68
+#define DEFAULT_I2C_SPEED  600000L      // If issue on LCD seen reduce to 400000
+#define FAST_I2C_SPEED     800000L     // Only used for CAN reads
 
 //-------------------------------------------------------
 // SETUP
@@ -119,64 +121,67 @@ void setup() {
   pinMode (encoderSwitch,   INPUT_PULLUP);
   pinMode (alertReadyPin,   INPUT_PULLUP);
   
-  // Initialisation de port série
+  // Initialisation de port série (usually 115200)
   Serial.begin(230400);
 
   // ADS1115
   ADS.begin();
-  //ADS.setWireClock(400000L);                  // Clock I2C @ 0.4MHz
-  //ADS.setWireClock(1000000L);                  // Clock I2C @ 1MHz
-  Wire.setClock(400000L);
-  ADS.setGain(DEFAULT_GAIN);                  // +-1.024 
-  ADS.setMode(1);                             // 1=single
-  // Activate Alert_Pin @ end of conversion
-  if (1){
+  ADS.setGain(DEFAULT_GAIN);                  
+  ADS.setMode(1);                             // 0=continuous/1=single
+  
+  if (1){ // Activate Alert_Pin @ end of conversion in continous mode
     ADS.setMode(0);                           // 0=continous
     ADS.setComparatorThresholdLow(0x0000 );   // MSB=0
     ADS.setComparatorThresholdHigh(0x8000 );  // MSB=1
     ADS.setComparatorQueConvert(0);           // trigger after One sample
   }
-  
-  ADS.setDataRate(DEFAULT_RATE);              // 1 = 16 SPS
 
-  // Choose 
-  if (digitalRead(muxModePin)==0) {
+  // Choose muxMode based on external switch
+  // Either Single {A0,A1,A2,A3} or Differential {A0-A1,A2-A3} 
+  if (digitalRead(muxModePin)==1) {
+    // Differential mode
+    current_rate=DEFAULT_RATE_DIFFERENTIAL;
+    ADS.setDataRate(current_rate);      
     muxMode=1;
-    ADS.requestADC_Differential_0_1();
+    mux_for_next_interrupt=4;
+    ADS.requestADC_Differential_2_3(); // Preselect  MUX 
   } else {
+    // Single-Ended mode
+    current_rate=DEFAULT_RATE_SINGLE;
+    ADS.setDataRate(current_rate);      
     muxMode=0;
-    ADS.requestADC(0);
+    mux_for_next_interrupt=0;
+    ADS.requestADC(0);                 // Preselect  MUX 
   }
   
-  ADS.readADC(0);                             // Et on fait une lecture à vide, pour envoyer tous ces paramètres
-
   // ALERT/RDY pin will indicate when conversion is ready, to Arduino pin 2
   attachInterrupt(digitalPinToInterrupt(2), int_read_adc, RISING );
 
-  // initialisation de l'afficheur / Message d'accueil
-  lcd.init(); 
+  // initialisation de l'afficheur : Message d'accueil
+  lcd.init();                         // be aware that it reduce I2C freq 100KHz
   lcd.backlight();
-  print_sentence_lcd("Hello, Half-God!",0,0);
-  print_sentence_lcd("Sample Sensors",1,1);
+  print_string_lcd("Hello, Half-God!",0,0);
+  print_string_lcd("Sample Sensors",1,1);
   delay(5000);
   lcd.clear();
   // Prepare LCD screen
   // First Line
-  print_sentence_lcd(" Rate(Hz):      ",0,0);
+  print_string_lcd(" Rate(Hz):      ",0,0);
   lcd.setCursor(POS_SAMPLE_RATE, 0);
   lcd.print(sample_rate[current_rate]);
   print_char_lcd('>',0,0);
   print_char_lcd('*',15,0);
 
   // Second line
-  print_sentence_lcd(" Ampl(v) :      ",0,1);
+  print_string_lcd(" Ampl(v) :      ",0,1);
   lcd.setCursor(POS_GAIN, 1);
   lcd.print(gain_value[current_gain],3);
   print_char_lcd('*',15,1);
 
   // END setup
+
+  Wire.setClock(DEFAULT_I2C_SPEED);
   Serial.println("EndofSetup");
-  Serial.println(ADS.getWireClock());
 }
 
 
@@ -199,15 +204,13 @@ void loop() {
  
     if (LCD_SELECT_SAMPLE_RATE==false) {   // Switch to Gain line and validate current Rate line
       saved_rate=current_rate;
-      lcd.setCursor(15, 0);
-      lcd.print("*");
-      print_char_lcd_clear_other('>',0,1);
       ADS.setDataRate(sample_rate_prog[current_rate]);            // prog new data rate
+      print_char_lcd('*', 15, 0);
+      print_char_lcd_clear_other('>',0,1);
     }else{                          // Switch to Rate line and validate current Gain line
       saved_gain=current_gain;
-      ADS.setGain(gain_prog[current_gain]);     // prog new Gain                         
-      lcd.setCursor(15, 1);
-      lcd.print("*");
+      ADS.setGain(gain_prog[current_gain]);                       // prog new Gain                         
+      print_char_lcd('*', 15, 1);
       print_char_lcd_clear_other('>',0,0);
     }
   
@@ -226,17 +229,14 @@ void loop() {
               current_rate = current_rate - 1;
         }
 
-        lcd.setCursor(POS_SAMPLE_RATE, 0);
-        lcd.print("     ");
-        lcd.setCursor(POS_SAMPLE_RATE, 0);
-        lcd.print(sample_rate[current_rate]);
-        lcd.setCursor(15, 0);
+        print_string_lcd("     ",POS_SAMPLE_RATE, 0);
+        print_int_lcd(sample_rate[current_rate],POS_SAMPLE_RATE, 0);
+        // Si on reselectionne la valeur déjà memorisée on affiche un caractere spécial en fin de ligne
         if (current_rate==saved_rate) {
-          lcd.print("*");
+          print_char_lcd('*',15,0);
         }else{
-          lcd.print(" ");
-        }
-        
+          print_char_lcd(' ',15,0);
+        }   
       } else {  // GAIN Line SELECTED
         if (digitalRead(encoderData) == LOW) {
           if (current_gain < (gain_value_sizeTab-1))
@@ -245,16 +245,12 @@ void loop() {
             if (current_gain > 0)
               current_gain = current_gain - 1;
         }
-        lcd.setCursor(POS_GAIN, 1);
-        lcd.print("  ");
-        lcd.setCursor(POS_GAIN, 1);
-        lcd.print(gain_value[current_gain],3);
-        lcd.setCursor(15, 1);
+        print_string_lcd("   ",POS_GAIN, 1);    // Clean lcd @ POS
+        print_float_lcd(gain_value[current_gain],POS_GAIN, 1,3);
+        // Si on reselectionne la valeur déjà memorisée on affiche un caractere spécial en fin de ligne
         if (current_gain==saved_gain) {
-          //lcd.print("*");
           print_char_lcd('*',15,1);
         }else{
-          //lcd.print(" ");
           print_char_lcd(' ',15,1);
         }
       }
@@ -267,83 +263,76 @@ void loop() {
   // After interrupt processing
   //-------------------------------------------
   if (DO_READ_ADC){
-    Serial.print("EnterInt:");Serial.println(millis());
+    //Serial.println(millis());
+    Wire.setClock(FAST_I2C_SPEED);
     static unsigned long cv_start;
-    static unsigned long cv_start2;
     //-----------------------------------------
     // muxMODE = 0 => Single Ended
     //         = 1 => Differential
     //-----------------------------------------
-    Serial.print("muxMode_0:");    Serial.println(muxMode);
-    Serial.print("chan     :");    Serial.println(mux_for_next_interrupt);
+    //Serial.print("muxMode_0:");    Serial.println(muxMode);
+    //Serial.print("chan     :");    Serial.println(mux_for_next_interrupt);
     if (muxMode==0) {
       // Mode Single Ended
       switch (mux_for_next_interrupt){
         case 0:         // Channel A0
-          CAN_value=ADS.readADC(2);  // internally call to ADS.requestADC
+         //Serial.print(mux_for_next_interrupt);
+         CAN_value_A0=ADS.readADC(2);  // internally call to ADS.requestADC + read (~300us @ i2c_800KHz)
           mux_for_next_interrupt=1;
           break;
         case 1:         // Channel A1
-          CAN_value=ADS.readADC(3);
+          //Serial.print(mux_for_next_interrupt);
+          CAN_value_A1=ADS.readADC(3);
           mux_for_next_interrupt=2;
          break;
         case 2:         // Channel A2
-          CAN_value=ADS.readADC(0);
+          //Serial.print(mux_for_next_interrupt);
+          CAN_value_A2=ADS.readADC(0);
           mux_for_next_interrupt=3;
           break;
         case 3:         // Channel A3
-          CAN_value=ADS.readADC(1);
+          //Serial.print(mux_for_next_interrupt);
+          CAN_value_A3=ADS.readADC(1);
           mux_for_next_interrupt=0;
           break;
         default:
           Serial.println("ERROR: Channel incompatible avec le mode SINGLE-ENDED selectionné");
           break;
       }
-      
     } else { 
       // Mode Single Ended
       switch (mux_for_next_interrupt){
-        case 0:         // Channel A0-A1 (Differentiel)
-          CAN_value=ADS.readADC_Differential_0_1();
-          mux_for_next_interrupt=3;
-          ADS.requestADC_Differential_2_3();
+        case 4:         // Channel A0-A1 (Differentiel)
+          //Serial.print(mux_for_next_interrupt);
+          CAN_value_A0_A1=ADS.readADC_Differential_0_1();
+          mux_for_next_interrupt=5;
           break;  
-        case 3:         // Channel A3    (Differentiel)
-          CAN_value=ADS.readADC_Differential_2_3();
-          mux_for_next_interrupt=0;
-          ADS.requestADC_Differential_0_1();
+        case 5:         // Channel A3    (Differentiel)
+          //Serial.print(mux_for_next_interrupt);
+          CAN_value_A2_A3=ADS.readADC_Differential_2_3();
+          mux_for_next_interrupt=4;
           break;   
         default:
           Serial.println("ERROR: Channel incompatible avec le mode DIFFERENTIAL selectionné");
           break;
       }
-  }
-Serial.print("A:");Serial.println(CAN_value);
+    }
 
-//    CAN_value_A0=ADS.readADC(0);
-//cv_start2=micros()-cv_start;
-//    CAN_value_A1=ADS.readADC(1);
-//    CAN_value_A2=ADS.readADC(2);
-//    CAN_value_A3=ADS.readADC(3);
-//    Serial.println("");
-//    Serial.println(cv_start);
-//    Serial.print("A0:");Serial.println(CAN_value_A0);
-//Serial.println(cv_start2);
-////    Serial.print("A1:");Serial.println(CAN_value_A1);
-//    Serial.print("A2:");Serial.println(CAN_value_A2);
-//    Serial.print("A3:");Serial.println(CAN_value_A3);
+    if (mux_for_next_interrupt==0){
+      Serial.print(CAN_value_A0);Serial.print(" ");
+      Serial.print(CAN_value_A1);Serial.print(" ");
+      Serial.print(CAN_value_A2);Serial.print(" ");
+      Serial.println(CAN_value_A3);
+    }
+    
+    if (mux_for_next_interrupt==4){
+      Serial.print(CAN_value_A0_A1);Serial.print(" ");
+      Serial.println(CAN_value_A2_A3);
+    }
 
-    //difference_CAN_value_A0_A1 = ADS.readADC_Differential_0_1(); // read diff lane 0-1
-    //ADS.readADC(0);  // read lane ain0
-    //cv_end=micros();
-    //Serial.println(cv_end-cv_start);
-    //Serial.println(cv_end);
-   //  Serial.println(difference_CAN_value_A0_A1); 
-  //float tension_volts_A0_A1 = ADS.toVoltage(difference_CAN_value_A0_A1);
-  //Serial.println(tension_volts_A0_A1,6);    // On limite l'affichage à 3 chiffres après la virgule
+    Wire.setClock(DEFAULT_I2C_SPEED); // Restore normal i2c speed
     DO_READ_ADC=false;
   }
-
 }
 
 
@@ -366,11 +355,20 @@ void print_char_lcd_clear_other (char car, int col, int lg){
   lcd.print(' ');
 }
 
-void print_sentence_lcd (const String carTab, int col, int lg){
+void print_string_lcd (const String strTab, int col, int lg){
   lcd.setCursor(col, lg);
-  lcd.print(carTab);
+  lcd.print(strTab);
 }
 
+void print_float_lcd (const float num, int col, int lg, short decimal){
+  lcd.setCursor(col, lg);
+  lcd.print(num,decimal);
+}
+
+void print_int_lcd (const int num, int col, int lg){
+  lcd.setCursor(col, lg);
+  lcd.print(num);
+}
 //-------------------------------------------------------
 // Interrupt function to start reading CAN value
 //-------------------------------------------------------
