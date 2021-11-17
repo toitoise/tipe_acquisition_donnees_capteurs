@@ -8,10 +8,16 @@
  * 
  */
  
-
 #include "ADS1X15_ST.h"
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
+#include <time.h>
+
+//-------------------------------------------------------
+// RTC ds3231 i2c clock
+//-------------------------------------------------------
+#define DS3231_I2C_ADDRESS 0x68
+
 
 //-------------------------------------------------------
 // MODE PINS for ADS multiplexer (external manual switch)
@@ -179,8 +185,8 @@ void setup() {
   print_char_lcd('*',15,1);
 
   // END setup
-
   Wire.setClock(DEFAULT_I2C_SPEED);
+  displayTime();
   Serial.println("EndofSetup");
 }
 
@@ -387,6 +393,75 @@ byte decToBcd(byte val) {
 // Convert binary coded decimal to normal decimal numbers
 byte bcdToDec(byte val) {
   return ( (val / 16 * 10) + (val % 16) );
+}
+
+//-------------------------------------------------------
+// Affiche le temps sur lelien Serie
+//-------------------------------------------------------
+void displayTime() {
+  byte second, minute, hour, dayOfWeek, dayOfMonth, month, year;
+  // retrieve data from DS3231
+  readDS3231time(&second, &minute, &hour, &dayOfWeek, &dayOfMonth, &month,
+                 &year);
+  unsigned long aaaa= micros();
+
+
+  static unsigned long rtctime;
+  static unsigned long calendar;
+  // Time [23:16]=hours [15:8]=minutes [7:0]=second
+  calendar=((unsigned long)year<<16) | ((unsigned long)month<<8) | dayOfMonth;
+Serial.println(calendar,HEX);
+  rtctime=((unsigned long)hour<<16) | ((unsigned long)minute<<8) | second;
+Serial.println(rtctime,HEX);
+
+
+  // send it to the serial monitor
+  Serial.print(hour, DEC);
+  // convert the byte variable to a decimal number when displayed
+  Serial.print(":");
+  if (minute < 10) {
+    Serial.print("0");
+  }
+  Serial.print(minute, DEC);
+  Serial.print(":");
+  if (second < 10) {
+    Serial.print("0");
+  }
+  Serial.print(second, DEC);
+  Serial.print(" ");
+  Serial.print(dayOfMonth, DEC);
+  Serial.print("/");
+  Serial.print(month, DEC);
+  Serial.print("/");
+  Serial.print(year, DEC);
+  Serial.print(" Day of week: ");
+  switch (dayOfWeek) {
+    case 1:
+      Serial.println("Sunday");
+      break;
+    case 2:
+      Serial.println("Monday");
+      break;
+    case 3:
+      Serial.println("Tuesday");
+      break;
+    case 4:
+      Serial.println("Wednesday");
+      break;
+    case 5:
+      Serial.println("Thursday");
+      break;
+    case 6:
+      Serial.println("Friday");
+      break;
+    case 7:
+      Serial.println("Saturday");
+      break;
+    default:
+      Serial.println("BAD Day");
+  }
+  Serial.print("T:");  Serial.println(micros()-aaaa);
+
 }
 
 //-------------------------------------------------------
