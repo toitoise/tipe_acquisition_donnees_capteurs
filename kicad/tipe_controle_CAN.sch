@@ -1,0 +1,603 @@
+EESchema Schematic File Version 4
+EELAYER 30 0
+EELAYER END
+$Descr A4 11693 8268
+encoding utf-8
+Sheet 1 1
+Title ""
+Date ""
+Rev ""
+Comp ""
+Comment1 ""
+Comment2 ""
+Comment3 ""
+Comment4 ""
+$EndDescr
+$Comp
+L Amplifier_Operational:TL082 U1
+U 1 1 618D8886
+P 3050 4200
+F 0 "U1" H 3050 4567 50  0000 C CNN
+F 1 "TL082" H 3050 4476 50  0000 C CNN
+F 2 "" H 3050 4200 50  0001 C CNN
+F 3 "http://www.ti.com/lit/ds/symlink/tl081.pdf" H 3050 4200 50  0001 C CNN
+	1    3050 4200
+	1    0    0    -1  
+$EndComp
+$Comp
+L Device:R R?
+U 1 1 618E5CEF
+P 2500 6550
+F 0 "R?" H 2570 6596 50  0000 L CNN
+F 1 "10K" H 2570 6505 50  0000 L CNN
+F 2 "" V 2430 6550 50  0001 C CNN
+F 3 "~" H 2500 6550 50  0001 C CNN
+	1    2500 6550
+	1    0    0    -1  
+$EndComp
+$Comp
+L Device:R R?
+U 1 1 618E6974
+P 2700 6150
+F 0 "R?" V 2493 6150 50  0000 C CNN
+F 1 "2.2K" V 2584 6150 50  0000 C CNN
+F 2 "" V 2630 6150 50  0001 C CNN
+F 3 "~" H 2700 6150 50  0001 C CNN
+	1    2700 6150
+	0    1    1    0   
+$EndComp
+Wire Wire Line
+	3300 6150 3450 6150
+Wire Wire Line
+	3450 6150 3450 5700
+Wire Wire Line
+	3000 6150 2850 6150
+Wire Wire Line
+	3150 6300 3300 6300
+Wire Wire Line
+	3300 6300 3300 6150
+Connection ~ 3300 6150
+Wire Wire Line
+	2500 6400 2500 6150
+Wire Wire Line
+	2500 6150 2550 6150
+Wire Wire Line
+	2500 6150 2500 5800
+Connection ~ 2500 6150
+Wire Wire Line
+	2500 5800 2750 5800
+$Comp
+L Amplifier_Operational:TL082 U1
+U 2 1 618DD0D9
+P 3050 5700
+F 0 "U1" H 3050 6067 50  0000 C CNN
+F 1 "TL082" H 3050 5976 50  0000 C CNN
+F 2 "" H 3050 5700 50  0001 C CNN
+F 3 "http://www.ti.com/lit/ds/symlink/tl081.pdf" H 3050 5700 50  0001 C CNN
+	2    3050 5700
+	1    0    0    -1  
+$EndComp
+$Comp
+L power:GND #PWR?
+U 1 1 618E994C
+P 2500 6800
+F 0 "#PWR?" H 2500 6550 50  0001 C CNN
+F 1 "GND" H 2505 6627 50  0000 C CNN
+F 2 "" H 2500 6800 50  0001 C CNN
+F 3 "" H 2500 6800 50  0001 C CNN
+	1    2500 6800
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	2500 6700 2500 6750
+Connection ~ 2750 5800
+Wire Wire Line
+	2750 5800 2850 5800
+$Comp
+L Reference_Voltage:LM385BZ-1.2 U2
+U 1 1 618F1008
+P 1350 6200
+F 0 "U2" V 1396 6112 50  0000 R CNN
+F 1 "LM385BZ-1.2" V 1305 6112 50  0000 R CNN
+F 2 "Package_TO_SOT_THT:TO-92_Inline" H 1350 6000 50  0001 C CIN
+F 3 "http://www.onsemi.com/pub_link/Collateral/LM285-D.PDF" H 1350 6200 50  0001 C CIN
+	1    1350 6200
+	0    -1   -1   0   
+$EndComp
+Wire Wire Line
+	1350 6350 1350 6750
+Wire Wire Line
+	1350 6750 2500 6750
+Connection ~ 2500 6750
+Wire Wire Line
+	2500 6750 2500 6800
+$Comp
+L Device:R R10
+U 1 1 618F2774
+P 1350 5550
+F 0 "R10" H 1420 5596 50  0000 L CNN
+F 1 "22K" H 1420 5505 50  0000 L CNN
+F 2 "" V 1280 5550 50  0001 C CNN
+F 3 "~" H 1350 5550 50  0001 C CNN
+	1    1350 5550
+	1    0    0    -1  
+$EndComp
+$Comp
+L power:+5C #PWR?
+U 1 1 618F34B8
+P 1350 5000
+F 0 "#PWR?" H 1350 4850 50  0001 C CNN
+F 1 "+5C" H 1365 5173 50  0000 C CNN
+F 2 "" H 1350 5000 50  0001 C CNN
+F 3 "" H 1350 5000 50  0001 C CNN
+	1    1350 5000
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	1350 4850 1350 5000
+Wire Wire Line
+	1350 5400 1350 5000
+Wire Wire Line
+	3350 4650 3500 4650
+Wire Wire Line
+	3500 4650 3500 4200
+Wire Wire Line
+	3050 4650 2900 4650
+Wire Wire Line
+	3200 4800 3350 4800
+Wire Wire Line
+	3350 4800 3350 4650
+Connection ~ 3350 4650
+Wire Wire Line
+	2550 4900 2550 4650
+Wire Wire Line
+	2550 4650 2600 4650
+Wire Wire Line
+	2550 4650 2550 4300
+Connection ~ 2550 4650
+$Comp
+L power:GND #PWR?
+U 1 1 618F87AB
+P 2550 5300
+F 0 "#PWR?" H 2550 5050 50  0001 C CNN
+F 1 "GND" H 2555 5127 50  0000 C CNN
+F 2 "" H 2550 5300 50  0001 C CNN
+F 3 "" H 2550 5300 50  0001 C CNN
+	1    2550 5300
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	3350 4200 3500 4200
+Wire Wire Line
+	2550 4300 2750 4300
+Wire Wire Line
+	3350 5700 3450 5700
+Wire Wire Line
+	2550 5200 2550 5300
+Wire Wire Line
+	1350 5700 1350 5850
+Wire Wire Line
+	1350 5850 1900 5850
+Wire Wire Line
+	1900 4100 2750 4100
+Wire Wire Line
+	1900 4100 1900 5600
+Connection ~ 1350 5850
+Wire Wire Line
+	1350 5850 1350 6050
+Wire Wire Line
+	2750 5650 2750 5600
+Wire Wire Line
+	2750 5600 1900 5600
+Connection ~ 2750 5600
+Connection ~ 1900 5600
+Wire Wire Line
+	1900 5600 1900 5850
+$Comp
+L Device:R R2
+U 1 1 618F8795
+P 2550 5050
+F 0 "R2" H 2620 5096 50  0000 L CNN
+F 1 "10K" H 2620 5005 50  0000 L CNN
+F 2 "" V 2480 5050 50  0001 C CNN
+F 3 "~" H 2550 5050 50  0001 C CNN
+	1    2550 5050
+	1    0    0    -1  
+$EndComp
+$Comp
+L Device:R R1a
+U 1 1 618F879B
+P 2750 4650
+F 0 "R1a" V 2543 4650 50  0000 C CNN
+F 1 "2.2K" V 2634 4650 50  0000 C CNN
+F 2 "" V 2680 4650 50  0001 C CNN
+F 3 "~" H 2750 4650 50  0001 C CNN
+	1    2750 4650
+	0    1    1    0   
+$EndComp
+$Comp
+L Device:R_POT R1b
+U 1 1 618F878F
+P 3200 4650
+F 0 "R1b" V 2993 4650 50  0000 C CNN
+F 1 "47K" V 3084 4650 50  0000 C CNN
+F 2 "" H 3200 4650 50  0001 C CNN
+F 3 "~" H 3200 4650 50  0001 C CNN
+	1    3200 4650
+	0    1    1    0   
+$EndComp
+$Comp
+L Device:R_POT RV?
+U 1 1 618DFEA7
+P 3150 6150
+F 0 "RV?" V 2943 6150 50  0000 C CNN
+F 1 "47K" V 3034 6150 50  0000 C CNN
+F 2 "" H 3150 6150 50  0001 C CNN
+F 3 "~" H 3150 6150 50  0001 C CNN
+	1    3150 6150
+	0    1    1    0   
+$EndComp
+$Comp
+L Connector:Conn_01x03_Male J0
+U 1 1 61902ACF
+P 1600 1150
+F 0 "J0" H 1708 1431 50  0000 C CNN
+F 1 "Sonde0" H 1708 1340 50  0000 C CNN
+F 2 "" H 1600 1150 50  0001 C CNN
+F 3 "~" H 1600 1150 50  0001 C CNN
+	1    1600 1150
+	1    0    0    -1  
+$EndComp
+$Comp
+L Connector:Conn_01x10_Female J10
+U 1 1 61904325
+P 9050 2450
+F 0 "J10" H 9000 2950 50  0000 L CNN
+F 1 "ads1115" H 8900 1850 50  0000 L CNN
+F 2 "" H 9050 2450 50  0001 C CNN
+F 3 "~" H 9050 2450 50  0001 C CNN
+	1    9050 2450
+	1    0    0    -1  
+$EndComp
+$Comp
+L Connector:Conn_01x03_Male J1
+U 1 1 6191B581
+P 1600 1650
+F 0 "J1" H 1708 1931 50  0000 C CNN
+F 1 "sonde1" H 1708 1840 50  0000 C CNN
+F 2 "" H 1600 1650 50  0001 C CNN
+F 3 "~" H 1600 1650 50  0001 C CNN
+	1    1600 1650
+	1    0    0    -1  
+$EndComp
+$Comp
+L Connector:Conn_01x03_Male J2
+U 1 1 6191BF74
+P 1600 2150
+F 0 "J2" H 1708 2431 50  0000 C CNN
+F 1 "sonde2" H 1708 2340 50  0000 C CNN
+F 2 "" H 1600 2150 50  0001 C CNN
+F 3 "~" H 1600 2150 50  0001 C CNN
+	1    1600 2150
+	1    0    0    -1  
+$EndComp
+$Comp
+L Connector:Conn_01x03_Male J3
+U 1 1 6191C8F5
+P 1600 2650
+F 0 "J3" H 1708 2931 50  0000 C CNN
+F 1 "sonde3" H 1708 2840 50  0000 C CNN
+F 2 "" H 1600 2650 50  0001 C CNN
+F 3 "~" H 1600 2650 50  0001 C CNN
+	1    1600 2650
+	1    0    0    -1  
+$EndComp
+Connection ~ 1350 5000
+$Comp
+L power:+5C #PWR?
+U 1 1 6191FDC8
+P 2050 700
+F 0 "#PWR?" H 2050 550 50  0001 C CNN
+F 1 "+5C" H 2065 873 50  0000 C CNN
+F 2 "" H 2050 700 50  0001 C CNN
+F 3 "" H 2050 700 50  0001 C CNN
+	1    2050 700 
+	1    0    0    -1  
+$EndComp
+$Comp
+L power:GND #PWR?
+U 1 1 619207A2
+P 2100 2900
+F 0 "#PWR?" H 2100 2650 50  0001 C CNN
+F 1 "GND" H 2105 2727 50  0000 C CNN
+F 2 "" H 2100 2900 50  0001 C CNN
+F 3 "" H 2100 2900 50  0001 C CNN
+	1    2100 2900
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	2100 2900 2100 2550
+Wire Wire Line
+	2100 2550 1800 2550
+Wire Wire Line
+	2100 2550 2100 2050
+Wire Wire Line
+	2100 2050 1800 2050
+Connection ~ 2100 2550
+Wire Wire Line
+	2100 2050 2100 1550
+Wire Wire Line
+	2100 1550 1800 1550
+Connection ~ 2100 2050
+Wire Wire Line
+	2100 1550 2100 1050
+Wire Wire Line
+	2100 1050 1800 1050
+Connection ~ 2100 1550
+Wire Wire Line
+	2050 700  2050 1250
+Wire Wire Line
+	2050 1250 1800 1250
+Wire Wire Line
+	2050 1250 2050 1750
+Wire Wire Line
+	2050 1750 1800 1750
+Connection ~ 2050 1250
+Wire Wire Line
+	2050 1750 2050 2250
+Wire Wire Line
+	2050 2250 1800 2250
+Connection ~ 2050 1750
+Wire Wire Line
+	2050 2250 2050 2750
+Wire Wire Line
+	2050 2750 1800 2750
+Connection ~ 2050 2250
+$Comp
+L power:GND #PWR?
+U 1 1 6192ABAC
+P 8600 3300
+F 0 "#PWR?" H 8600 3050 50  0001 C CNN
+F 1 "GND" H 8605 3127 50  0000 C CNN
+F 2 "" H 8600 3300 50  0001 C CNN
+F 3 "" H 8600 3300 50  0001 C CNN
+	1    8600 3300
+	1    0    0    -1  
+$EndComp
+$Comp
+L power:+5C #PWR?
+U 1 1 6192B64C
+P 8600 1800
+F 0 "#PWR?" H 8600 1650 50  0001 C CNN
+F 1 "+5C" H 8615 1973 50  0000 C CNN
+F 2 "" H 8600 1800 50  0001 C CNN
+F 3 "" H 8600 1800 50  0001 C CNN
+	1    8600 1800
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	8600 1800 8600 2050
+Wire Wire Line
+	8600 2050 8850 2050
+Wire Wire Line
+	8600 3300 8600 2150
+Wire Wire Line
+	8600 2150 8850 2150
+Wire Wire Line
+	1800 1150 6800 1150
+Wire Wire Line
+	6800 1150 6800 2650
+Wire Wire Line
+	6800 2650 8850 2650
+Wire Wire Line
+	1850 2150 5250 2150
+Wire Wire Line
+	5250 2150 5250 2850
+Wire Wire Line
+	5250 2850 8850 2850
+$Comp
+L power:+5C #PWR?
+U 1 1 61931605
+P 10500 900
+F 0 "#PWR?" H 10500 750 50  0001 C CNN
+F 1 "+5C" H 10515 1073 50  0000 C CNN
+F 2 "" H 10500 900 50  0001 C CNN
+F 3 "" H 10500 900 50  0001 C CNN
+	1    10500 900 
+	1    0    0    -1  
+$EndComp
+$Comp
+L power:GND #PWR?
+U 1 1 61931C47
+P 10500 1300
+F 0 "#PWR?" H 10500 1050 50  0001 C CNN
+F 1 "GND" H 10505 1127 50  0000 C CNN
+F 2 "" H 10500 1300 50  0001 C CNN
+F 3 "" H 10500 1300 50  0001 C CNN
+	1    10500 1300
+	1    0    0    -1  
+$EndComp
+$Comp
+L Device:CP C?
+U 1 1 619324BE
+P 10700 1100
+F 0 "C?" H 10818 1146 50  0000 L CNN
+F 1 "10u" H 10818 1055 50  0000 L CNN
+F 2 "" H 10738 950 50  0001 C CNN
+F 3 "~" H 10700 1100 50  0001 C CNN
+	1    10700 1100
+	1    0    0    -1  
+$EndComp
+$Comp
+L Device:C_Small C?
+U 1 1 61932F80
+P 10250 1100
+F 0 "C?" H 10342 1146 50  0000 L CNN
+F 1 "1n" H 10342 1055 50  0000 L CNN
+F 2 "" H 10250 1100 50  0001 C CNN
+F 3 "~" H 10250 1100 50  0001 C CNN
+	1    10250 1100
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	10250 1000 10250 900 
+Wire Wire Line
+	10250 900  10500 900 
+Wire Wire Line
+	10500 900  10700 900 
+Wire Wire Line
+	10700 900  10700 950 
+Connection ~ 10500 900 
+Wire Wire Line
+	10250 1200 10250 1300
+Wire Wire Line
+	10250 1300 10500 1300
+Wire Wire Line
+	10500 1300 10700 1300
+Wire Wire Line
+	10700 1300 10700 1250
+Connection ~ 10500 1300
+Text Label 9100 2250 0    50   ~ 0
+i2c_scl
+Text Label 9100 2350 0    50   ~ 0
+i2c_sda
+Text Label 9100 2450 0    50   ~ 0
+addr
+Text Label 9100 2550 0    50   ~ 0
+alrt
+Text Label 9100 2650 0    50   ~ 0
+a0
+Text Label 9100 2750 0    50   ~ 0
+a1
+Text Label 9100 2850 0    50   ~ 0
+a2
+Text Label 9100 2950 0    50   ~ 0
+a3
+$Comp
+L Connector_Generic:Conn_01x03 J?
+U 1 1 619460F5
+P 4350 2700
+F 0 "J?" H 4430 2742 50  0000 L CNN
+F 1 "Conn_01x03" H 4150 2500 50  0000 L CNN
+F 2 "" H 4350 2700 50  0001 C CNN
+F 3 "~" H 4350 2700 50  0001 C CNN
+	1    4350 2700
+	1    0    0    -1  
+$EndComp
+$Comp
+L Connector_Generic:Conn_01x03 J?
+U 1 1 619479A3
+P 5300 3400
+F 0 "J?" H 5380 3442 50  0000 L CNN
+F 1 "Conn_01x03" H 5100 3200 50  0000 L CNN
+F 2 "" H 5300 3400 50  0001 C CNN
+F 3 "~" H 5300 3400 50  0001 C CNN
+	1    5300 3400
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	3500 4200 3500 2800
+Wire Wire Line
+	3500 2800 4150 2800
+Connection ~ 3500 4200
+Wire Wire Line
+	3450 5700 4700 5700
+Wire Wire Line
+	4700 5700 4700 3500
+Wire Wire Line
+	4700 3500 5100 3500
+Connection ~ 3450 5700
+Wire Wire Line
+	1800 2650 3050 2650
+Wire Wire Line
+	3050 2650 3050 3300
+Wire Wire Line
+	3050 3300 5100 3300
+Wire Wire Line
+	1800 1650 3500 1650
+Wire Wire Line
+	3500 1650 3500 2600
+Wire Wire Line
+	3500 2600 4150 2600
+Wire Wire Line
+	4150 2700 4050 2700
+Wire Wire Line
+	4050 2700 4050 2400
+Wire Wire Line
+	4050 2400 6050 2400
+Wire Wire Line
+	6050 2400 6050 2750
+Wire Wire Line
+	6050 2750 8850 2750
+Wire Wire Line
+	5100 3400 4950 3400
+Wire Wire Line
+	4950 3400 4950 2950
+Wire Wire Line
+	4950 2950 8850 2950
+Wire Notes Line
+	1750 4600 1750 6950
+Wire Notes Line
+	1750 6950 750  6950
+Wire Notes Line
+	750  6950 750  4600
+Wire Notes Line
+	750  4600 1750 4600
+Wire Notes Line
+	3950 3600 3950 7250
+Wire Notes Line
+	3950 7250 2050 7250
+Wire Notes Line
+	2050 7250 2050 3600
+Wire Notes Line
+	2050 3600 3950 3600
+Text Notes 850  4700 0    50   ~ 0
+Référence de tension
+Text Notes 1450 5850 0    50   ~ 0
+1.2volts
+Text Notes 2100 3800 0    50   ~ 0
+Amplificateurs non-inverseur\nGain 1+(R1/R2)
+Wire Notes Line
+	6250 2300 6250 4050
+Wire Notes Line
+	6250 4050 4000 4050
+Wire Notes Line
+	4000 4050 4000 3100
+Wire Notes Line
+	4000 3100 3700 3100
+Wire Notes Line
+	3700 3100 3700 2300
+Wire Notes Line
+	3700 2300 6250 2300
+Text Notes 5100 3900 0    50   ~ 0
+Sélecteur pour Canux 1 et 3
+Text Notes 4550 4000 0    50   ~ 0
+Choix entre (Vref x Gain) ou sonde externe
+Text Notes 1150 5850 0    50   ~ 0
+Vref
+Wire Notes Line
+	10950 2300 10950 2950
+Wire Notes Line
+	10950 2950 9750 2950
+Wire Notes Line
+	9750 2950 9750 2300
+Text Notes 10100 2400 0    50   ~ 0
+VERS ARDUINO
+Wire Notes Line
+	9750 2300 10950 2300
+Text Notes 9850 2750 0    50   ~ 0
+i2c_scl, i2c_sda\nalrt\na0, a1, a2, a3\n
+$Comp
+L Device:Rotary_Encoder SW?
+U 1 1 61968128
+P 7700 900
+F 0 "SW?" V 7689 670 50  0000 R CNN
+F 1 "Rotary_Encoder" V 7598 670 50  0000 R CNN
+F 2 "" H 7550 1060 50  0001 C CNN
+F 3 "~" H 7700 1160 50  0001 C CNN
+	1    7700 900 
+	0    -1   -1   0   
+$EndComp
+Text Notes 9900 650  0    50   ~ 0
+Alimentation venant dud l'Arduino
+$EndSCHEMATC
