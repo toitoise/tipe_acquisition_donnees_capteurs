@@ -18,17 +18,18 @@
 //-------------------------------------------------------
 #define DS3231_I2C_ADDRESS 0x68
 
+//-------------------------------------------------------
+// MODE PIN for ADS conversion mode
+// 1=Differential
+// 0=Single-Ended
+//-------------------------------------------------------
+#define  SingleEndedOrDifferentialPin  3
+#define  DiffMode   1
+#define  SingleMode 0
+short muxMode=DiffMode;
 
 //-------------------------------------------------------
-// MODE PINS for ADS multiplexer (external manual switch)
-// 0=Differential
-// 1=Single-Ended
-//-------------------------------------------------------
-#define  muxModePin  0
-short muxMode=0;
-
-//-------------------------------------------------------
-// ADS115 PINS
+// ADS1115 PINS  (connected to interrupt pin)
 //-------------------------------------------------------
 #define  alertReadyPin  2
 
@@ -59,7 +60,7 @@ ADS1115 ADS(0x48);  // ADS1115 physiquement défini à l'adresse 0x48(default)
 110 : AINP = AIN2 and AINN = GND    A2
 111 : AINP = AIN3 and AINN = GND    A3
 ********************************************/
-short mux_for_next_interrupt=0x0;
+short muxStateforNextInterrupt=0x0;
 
 /* DateRate *********************************
 DR=0 : 8 SPS
@@ -121,7 +122,7 @@ void setup() {
   Wire.begin();
 
   // Inputs definitions
-  pinMode (muxModePin,      INPUT_PULLUP);
+  pinMode (SingleEndedOrDifferentialPin,      INPUT_PULLUP);
   pinMode (encoderClk,      INPUT);
   pinMode (encoderData,     INPUT);
   pinMode (encoderSwitch,   INPUT_PULLUP);
@@ -142,21 +143,21 @@ void setup() {
     ADS.setComparatorQueConvert(0);           // trigger after One sample
   }
 
-  // Choose muxMode based on external switch
+  // Choose Conversion mode based on external switch
   // Either Single {A0,A1,A2,A3} or Differential {A0-A1,A2-A3} 
-  if (digitalRead(muxModePin)==1) {
+  if (digitalRead(SingleEndedOrDifferentialPin)==1) {
     // Differential mode
     current_rate=DEFAULT_RATE_DIFFERENTIAL;
     ADS.setDataRate(current_rate);      
-    muxMode=1;
-    mux_for_next_interrupt=4;
+    muxMode=DiffMode;
+    muxStateforNextInterrupt=4;
     ADS.requestADC_Differential_2_3(); // Preselect  MUX 
   } else {
     // Single-Ended mode
     current_rate=DEFAULT_RATE_SINGLE;
     ADS.setDataRate(current_rate);      
-    muxMode=0;
-    mux_for_next_interrupt=0;
+    muxMode=SingleMode;
+    muxStateforNextInterrupt=0;
     ADS.requestADC(0);                 // Preselect  MUX 
   }
   
@@ -277,29 +278,29 @@ void loop() {
     //         = 1 => Differential
     //-----------------------------------------
     //Serial.print("muxMode_0:");    Serial.println(muxMode);
-    //Serial.print("chan     :");    Serial.println(mux_for_next_interrupt);
-    if (muxMode==0) {
+    //Serial.print("chan     :");    Serial.println(muxStateforNextInterrupt);
+    if (muxMode==SingleMode) {
       // Mode Single Ended
-      switch (mux_for_next_interrupt){
+      switch (muxStateforNextInterrupt){
         case 0:         // Channel A0
-         //Serial.print(mux_for_next_interrupt);
+         //Serial.print(muxStateforNextInterrupt);
          CAN_value_A0=ADS.readADC(2);  // internally call to ADS.requestADC + read (~300us @ i2c_800KHz)
-          mux_for_next_interrupt=1;
+          muxStateforNextInterrupt=1;
           break;
         case 1:         // Channel A1
-          //Serial.print(mux_for_next_interrupt);
+          //Serial.print(muxStateforNextInterrupt);
           CAN_value_A1=ADS.readADC(3);
-          mux_for_next_interrupt=2;
+          muxStateforNextInterrupt=2;
          break;
         case 2:         // Channel A2
-          //Serial.print(mux_for_next_interrupt);
+          //Serial.print(muxStateforNextInterrupt);
           CAN_value_A2=ADS.readADC(0);
-          mux_for_next_interrupt=3;
+          muxStateforNextInterrupt=3;
           break;
         case 3:         // Channel A3
-          //Serial.print(mux_for_next_interrupt);
+          //Serial.print(muxStateforNextInterrupt);
           CAN_value_A3=ADS.readADC(1);
-          mux_for_next_interrupt=0;
+          muxStateforNextInterrupt=0;
           break;
         default:
           Serial.println("ERROR: Channel incompatible avec le mode SINGLE-ENDED selectionné");
@@ -307,16 +308,16 @@ void loop() {
       }
     } else { 
       // Mode Single Ended
-      switch (mux_for_next_interrupt){
+      switch (muxStateforNextInterrupt){
         case 4:         // Channel A0-A1 (Differentiel)
-          //Serial.print(mux_for_next_interrupt);
+          //Serial.print(muxStateforNextInterrupt);
           CAN_value_A0_A1=ADS.readADC_Differential_0_1();
-          mux_for_next_interrupt=5;
+          muxStateforNextInterrupt=5;
           break;  
         case 5:         // Channel A3    (Differentiel)
-          //Serial.print(mux_for_next_interrupt);
+          //Serial.print(muxStateforNextInterrupt);
           CAN_value_A2_A3=ADS.readADC_Differential_2_3();
-          mux_for_next_interrupt=4;
+          muxStateforNextInterrupt=4;
           break;   
         default:
           Serial.println("ERROR: Channel incompatible avec le mode DIFFERENTIAL selectionné");
@@ -324,14 +325,14 @@ void loop() {
       }
     }
 
-    if (mux_for_next_interrupt==0){
+    if (muxStateforNextInterrupt==0){
       Serial.print(CAN_value_A0);Serial.print(" ");
       Serial.print(CAN_value_A1);Serial.print(" ");
       Serial.print(CAN_value_A2);Serial.print(" ");
       Serial.println(CAN_value_A3);
     }
     
-    if (mux_for_next_interrupt==4){
+    if (muxStateforNextInterrupt==4){
       Serial.print(CAN_value_A0_A1);Serial.print(" ");
       Serial.println(CAN_value_A2_A3);
     }
