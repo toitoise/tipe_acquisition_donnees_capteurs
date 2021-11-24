@@ -1,22 +1,38 @@
-/*
+/********************************************************************************************************
  * 
  * Librairie du CAN l'ADS1115 :
  *      https://github.com/RobTillaart/ADS1X15
  *      https://passionelectronique.fr/tutorial-ads1115/
  *      https://cdn-learn.adafruit.com/downloads/pdf/adafruit-4-channel-adc-breakouts.pdf
- * Librairie DS3231
+ * Librairie pour DS3231:
+ *      https://github.com/cvmanjoo/RTC
  * 
- */
+ *      On utilise le temps universel UTC non sujet aux changement d'heures.
+ *      Cette lib retoune le temps EPOCH (secondes despuis 1970) pour tagger les echantillons
+ * 
+ ********************************************************************************************************/
  
 #include "ADS1X15_ST.h"
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 #include <time.h>
+#include "RTC_ST.h"
 
 //-------------------------------------------------------
 // RTC ds3231 i2c clock
 //-------------------------------------------------------
-#define DS3231_I2C_ADDRESS 0x68
+static DS3231 RTC;
+time_t epoch_RTC=0;
+
+//-------------------------------------------
+// Variables pour l'heure et la date :
+//-------------------------------------------
+byte heure          = 14;     // 0 à 23
+byte minute         = 54;     // 0 à 59
+byte seconde        = 30;      // 0 à 59
+byte numJourMois    = 7;      // 1 à 31
+byte mois           = 5;      // 1 à 12
+uint16_t annee      = 21;     // 0 à 99
 
 //-------------------------------------------------------
 // MODE PIN for ADS conversion mode
@@ -99,9 +115,9 @@ uint16_t CAN_value_A2=0;              // Single Ended : only positive
 uint16_t CAN_value_A3=0;              // Single Ended : only positive
 int16_t  CAN_value_A0_A1=0;           // Differential : pos and neg
 int16_t  CAN_value_A2_A3=0;           // Differential : pos and neg
-int16_t CAN_value=0;
 
-bool DO_READ_ADC    =false;
+volatile bool DO_READ_ADC    =false;           // Used inside interrupt (MUST be volatile)
+
 // Variables traitement bouton rotatif et click
 int clk_state_last      = LOW;            // Idle
 int clk_state           = LOW;            // Idle
@@ -111,9 +127,10 @@ unsigned long button_millis_cur   = 0;
 
 #define POS_SAMPLE_RATE   10            // Position sur LCD/colonne
 #define POS_GAIN          10            // Position sur LCD/colonne
-#define DS3231_I2C_ADDRESS 0x68
-#define DEFAULT_I2C_SPEED  600000L      // If issue on LCD seen reduce to 400000
-#define FAST_I2C_SPEED     800000L     // Only used for CAN reads
+
+#define NORMAL_I2C_SPEED   400000L      // Normal Speed 400000KHz
+#define DEFAULT_I2C_SPEED  600000L      // Push Freq to 600000KHz
+#define FAST_I2C_SPEED     800000L      // Only used for CAN reads
 
 //-------------------------------------------------------
 // SETUP
@@ -123,10 +140,10 @@ void setup() {
 
   // Inputs definitions
   pinMode (SingleEndedOrDifferentialPin,      INPUT_PULLUP);
-  pinMode (encoderClk,      INPUT);
-  pinMode (encoderData,     INPUT);
-  pinMode (encoderSwitch,   INPUT_PULLUP);
-  pinMode (alertReadyPin,   INPUT_PULLUP);
+  pinMode (encoderClk,                        INPUT);
+  pinMode (encoderData,                       INPUT);
+  pinMode (encoderSwitch,                     INPUT_PULLUP);
+  pinMode (alertReadyPin,                     INPUT_PULLUP);
   
   // Initialisation de port série (usually 115200)
   Serial.begin(230400);
@@ -136,15 +153,18 @@ void setup() {
   ADS.setGain(DEFAULT_GAIN);                  
   ADS.setMode(1);                             // 0=continuous/1=single
   
+  // ALWAYS continous mode
   if (1){ // Activate Alert_Pin @ end of conversion in continous mode
     ADS.setMode(0);                           // 0=continous
-    ADS.setComparatorThresholdLow(0x0000 );   // MSB=0
-    ADS.setComparatorThresholdHigh(0x8000 );  // MSB=1
+    ADS.setComparatorThresholdLow(0x0000 );   // MSB=0   for alertPin
+    ADS.setComparatorThresholdHigh(0x8000 );  // MSB=1   for alertPin
     ADS.setComparatorQueConvert(0);           // trigger after One sample
   }
 
+  //--------------------------------------------------------------
   // Choose Conversion mode based on external switch
   // Either Single {A0,A1,A2,A3} or Differential {A0-A1,A2-A3} 
+  //--------------------------------------------------------------
   if (digitalRead(SingleEndedOrDifferentialPin)==1) {
     // Differential mode
     current_rate=DEFAULT_RATE_DIFFERENTIAL;
@@ -161,24 +181,43 @@ void setup() {
     ADS.requestADC(0);                 // Preselect  MUX 
   }
   
-  // ALERT/RDY pin will indicate when conversion is ready, to Arduino pin 2
+  //--------------------------------------------------------------
+  // ALERT/RDY pin indicate when conversion is ready, to pin 2
+  //--------------------------------------------------------------
   attachInterrupt(digitalPinToInterrupt(2), int_read_adc, RISING );
 
+  //--------------------------------------------------------------
   // initialisation de l'afficheur : Message d'accueil
-  lcd.init();                         // be aware that it reduce I2C freq 100KHz
+  //--------------------------------------------------------------
+  lcd.init();        // be aware that it reduce I2C freq 100KHz
   lcd.backlight();
   print_string_lcd("Hello, Half-God!",0,0);
   print_string_lcd("Sample Sensors",1,1);
-  delay(5000);
+  delay(2500);
   lcd.clear();
-  // Prepare LCD screen
+
+  //--------------------------------------------------------------
+  // Prepare LCD Date display
+  //--------------------------------------------------------------
+  displayTime(2);         //0=lcd, 1=serial, 2=both
+  lcd.setCursor(0, 1);
+  if (muxMode==SingleMode){
+    lcd.println("* SingleEnded  *");
+  }else {
+    lcd.println("* Differential *");
+  }
+
+  delay(3000);
+  lcd.clear();
+  //--------------------------------------------------------------
+  // Prepare LCD working screen
+  //--------------------------------------------------------------
   // First Line
   print_string_lcd(" Rate(Hz):      ",0,0);
   lcd.setCursor(POS_SAMPLE_RATE, 0);
   lcd.print(sample_rate[current_rate]);
   print_char_lcd('>',0,0);
   print_char_lcd('*',15,0);
-
   // Second line
   print_string_lcd(" Ampl(v) :      ",0,1);
   lcd.setCursor(POS_GAIN, 1);
@@ -187,7 +226,6 @@ void setup() {
 
   // END setup
   Wire.setClock(DEFAULT_I2C_SPEED);
-  displayTime();
   Serial.println("EndofSetup");
 }
 
@@ -270,15 +308,12 @@ void loop() {
   // After interrupt processing
   //-------------------------------------------
   if (DO_READ_ADC){
-    //Serial.println(millis());
     Wire.setClock(FAST_I2C_SPEED);
     static unsigned long cv_start;
     //-----------------------------------------
     // muxMODE = 0 => Single Ended
     //         = 1 => Differential
     //-----------------------------------------
-    //Serial.print("muxMode_0:");    Serial.println(muxMode);
-    //Serial.print("chan     :");    Serial.println(muxStateforNextInterrupt);
     if (muxMode==SingleMode) {
       // Mode Single Ended
       switch (muxStateforNextInterrupt){
@@ -286,6 +321,8 @@ void loop() {
          //Serial.print(muxStateforNextInterrupt);
          CAN_value_A0=ADS.readADC(2);  // internally call to ADS.requestADC + read (~300us @ i2c_800KHz)
           muxStateforNextInterrupt=1;
+          Wire.setClock(NORMAL_I2C_SPEED);
+          epoch_RTC = RTC.getEpoch();       // Sample on A0 reading (every 4 samples)
           break;
         case 1:         // Channel A1
           //Serial.print(muxStateforNextInterrupt);
@@ -313,6 +350,8 @@ void loop() {
           //Serial.print(muxStateforNextInterrupt);
           CAN_value_A0_A1=ADS.readADC_Differential_0_1();
           muxStateforNextInterrupt=5;
+          Wire.setClock(NORMAL_I2C_SPEED);
+          epoch_RTC = RTC.getEpoch();     // Sample on A0-A1 reading (every 2 samples)
           break;  
         case 5:         // Channel A3    (Differentiel)
           //Serial.print(muxStateforNextInterrupt);
@@ -325,14 +364,19 @@ void loop() {
       }
     }
 
-    if (muxStateforNextInterrupt==0){
+
+    // We have just read the A3 entry
+    if (muxStateforNextInterrupt==0){ 
+      Serial.print(epoch_RTC,DEC);Serial.print(" ");
       Serial.print(CAN_value_A0);Serial.print(" ");
       Serial.print(CAN_value_A1);Serial.print(" ");
       Serial.print(CAN_value_A2);Serial.print(" ");
       Serial.println(CAN_value_A3);
     }
     
+    // We have just read the A2-A3 Diff entry
     if (muxStateforNextInterrupt==4){
+      Serial.print(epoch_RTC);Serial.print(" ");
       Serial.print(CAN_value_A0_A1);Serial.print(" ");
       Serial.println(CAN_value_A2_A3);
     }
@@ -341,7 +385,6 @@ void loop() {
     DO_READ_ADC=false;
   }
 }
-
 
 //-------------------------------------------------------
 // Quelques fonctions pour le LCD
@@ -397,94 +440,43 @@ byte bcdToDec(byte val) {
 }
 
 //-------------------------------------------------------
-// Affiche le temps sur lelien Serie
+// Affiche le temps sur le lien Serie ou LCD
 //-------------------------------------------------------
-void displayTime() {
-  byte second, minute, hour, dayOfWeek, dayOfMonth, month, year;
-  // retrieve data from DS3231
-  readDS3231time(&second, &minute, &hour, &dayOfWeek, &dayOfMonth, &month,
-                 &year);
-  unsigned long aaaa= micros();
+void displayTime(byte displayToSerialOrLcd) {
+  // retrieve data from DS3231 (takes ~1us)
+  Wire.setClock(FAST_I2C_SPEED);
+  annee  = RTC.getYear();
+  mois   = RTC.getMonth();
+  heure  = RTC.getHours();
+  minute = RTC.getMinutes();
+  seconde = RTC.getSeconds();
+  numJourMois = RTC.getDay();
+  Wire.setClock(NORMAL_I2C_SPEED);
 
-
-  static unsigned long rtctime;
-  static unsigned long calendar;
-  // Time [23:16]=hours [15:8]=minutes [7:0]=second
-  calendar=((unsigned long)year<<16) | ((unsigned long)month<<8) | dayOfMonth;
-Serial.println(calendar,HEX);
-  rtctime=((unsigned long)hour<<16) | ((unsigned long)minute<<8) | second;
-Serial.println(rtctime,HEX);
-
-
-  // send it to the serial monitor
-  Serial.print(hour, DEC);
-  // convert the byte variable to a decimal number when displayed
-  Serial.print(":");
-  if (minute < 10) {
-    Serial.print("0");
+  if (displayToSerialOrLcd==1 || displayToSerialOrLcd==2){
+    Serial.print("Date is ");  
+    Serial.print(annee, DEC);
+    Serial.print("/");
+    Serial.print(mois, DEC);
+    Serial.print("/");
+    Serial.print(numJourMois, DEC);
+    Serial.print("__");
+    Serial.print(heure, DEC);
+    Serial.print(":");
+    Serial.print(minute, DEC);
+    Serial.print(":");
+    Serial.println(seconde, DEC);
   }
-  Serial.print(minute, DEC);
-  Serial.print(":");
-  if (second < 10) {
-    Serial.print("0");
+  if (displayToSerialOrLcd==0 || displayToSerialOrLcd==2){
+    lcd.setCursor(0,0);
+    lcd.print(annee, DEC);
+    lcd.print("/");
+    lcd.print(mois, DEC);
+    lcd.print("/");
+    lcd.print(numJourMois, DEC);
+    lcd.print(" ");
+    lcd.print(heure, DEC);
+    lcd.print(":");
+    lcd.print(minute, DEC);
   }
-  Serial.print(second, DEC);
-  Serial.print(" ");
-  Serial.print(dayOfMonth, DEC);
-  Serial.print("/");
-  Serial.print(month, DEC);
-  Serial.print("/");
-  Serial.print(year, DEC);
-  Serial.print(" Day of week: ");
-  switch (dayOfWeek) {
-    case 1:
-      Serial.println("Sunday");
-      break;
-    case 2:
-      Serial.println("Monday");
-      break;
-    case 3:
-      Serial.println("Tuesday");
-      break;
-    case 4:
-      Serial.println("Wednesday");
-      break;
-    case 5:
-      Serial.println("Thursday");
-      break;
-    case 6:
-      Serial.println("Friday");
-      break;
-    case 7:
-      Serial.println("Saturday");
-      break;
-    default:
-      Serial.println("BAD Day");
-  }
-  Serial.print("T:");  Serial.println(micros()-aaaa);
-
-}
-
-//-------------------------------------------------------
-// Lecture date RTC
-//-------------------------------------------------------
-void readDS3231time(byte *second,
-                    byte *minute,
-                    byte *hour,
-                    byte *dayOfWeek,
-                    byte *dayOfMonth,
-                    byte *month,
-                    byte *year) {
-  Wire.beginTransmission(DS3231_I2C_ADDRESS);
-  Wire.write(0); // set DS3231 register pointer to 00h
-  Wire.endTransmission();
-  Wire.requestFrom(DS3231_I2C_ADDRESS, 7);
-  // request seven bytes of data from DS3231 starting from register 00h
-  *second     = bcdToDec(Wire.read() & 0x7f);
-  *minute     = bcdToDec(Wire.read());
-  *hour       = bcdToDec(Wire.read() & 0x3f);
-  *dayOfWeek  = bcdToDec(Wire.read());
-  *dayOfMonth = bcdToDec(Wire.read());
-  *month      = bcdToDec(Wire.read());
-  *year       = bcdToDec(Wire.read());
 }
