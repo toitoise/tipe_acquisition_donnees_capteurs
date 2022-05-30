@@ -1,3 +1,4 @@
 (sym_lib_table
-  (lib (name New_Library)(type Legacy)(uri ${KIPRJMOD}/New_Library.lib)(options "")(descr ""))
+  (lib (name "New_Library")(type "Legacy")(uri "${KIPRJMOD}/New_Library.lib")(options "")(descr ""))
+  (lib (name "tipe_controle_CAN")(type "Legacy")(uri "${KIPRJMOD}/tipe_controle_CAN.lib")(options "")(descr ""))
 )
