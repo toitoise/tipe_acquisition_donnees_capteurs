@@ -335,8 +335,8 @@ void loop() {
           muxStateforNextInterrupt=1;
           Wire.setClock(NORMAL_I2C_SPEED);
           epoch_RTC = RTC.getEpoch();       // Sample on A0 reading (every 4 samples)
-          Serial.print(epoch_RTC,DEC);Serial.print(" ");
-          Serial.print(CAN_value_A0);Serial.print(" ");
+          Serial.print(epoch_RTC,DEC);Serial.print(",");
+          Serial.print(CAN_value_A0);Serial.print(",");
           // Only display every 2secs
           if (current_time - last_value_display_time > DISPLAY_VALUE_TIME ) {
             value_to_display_str=String(CAN_value_A0);
@@ -350,7 +350,7 @@ void loop() {
           //Serial.print(muxStateforNextInterrupt);
           CAN_value_A1=ADS.readADC(3);
           muxStateforNextInterrupt=2;
-          Serial.print(CAN_value_A1);Serial.print(" ");
+          Serial.print(CAN_value_A1);Serial.print(",");
           if (display==true ) {
             value_to_display_str=String(CAN_value_A1);
             format_string(value_to_display_str);
@@ -363,7 +363,7 @@ void loop() {
           //Serial.print(muxStateforNextInterrupt);
           CAN_value_A2=ADS.readADC(0);
           muxStateforNextInterrupt=3;
-          Serial.print(CAN_value_A1);Serial.print(" ");
+          Serial.print(CAN_value_A1);Serial.print(",");
          if (display==true ) {
           Serial.println("BB");
            value_to_display_str=String(CAN_value_A2);
@@ -397,8 +397,8 @@ void loop() {
           muxStateforNextInterrupt=5;
           Wire.setClock(NORMAL_I2C_SPEED);
           epoch_RTC = RTC.getEpoch();     // Sample on A0-A1 reading (every 2 samples)
-          Serial.print(epoch_RTC);Serial.print(" ");
-          Serial.print(CAN_value_A0_A1);Serial.print(" ");
+          Serial.print(epoch_RTC);Serial.print(",");
+          Serial.print(CAN_value_A0_A1);Serial.print(",");
           if (current_time - last_value_display_time > 2000 ) {
             value_to_display_str=String(CAN_value_A0_A1);
             format_string(value_to_display_str);
