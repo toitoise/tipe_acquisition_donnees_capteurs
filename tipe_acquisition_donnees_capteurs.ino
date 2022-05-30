@@ -358,19 +358,15 @@ void loop() {
           }
         break;
         case 2:         // Channel A2
-         Serial.println("AA");
-         Serial.println(millis());
           //Serial.print(muxStateforNextInterrupt);
           CAN_value_A2=ADS.readADC(0);
           muxStateforNextInterrupt=3;
-          Serial.print(CAN_value_A1);Serial.print(",");
+          Serial.print(CAN_value_A2);Serial.print(",");
          if (display==true ) {
-          Serial.println("BB");
            value_to_display_str=String(CAN_value_A2);
             format_string(value_to_display_str);
             print_string_lcd (value_to_display_str,2,3);
           }
-          Serial.println(millis());
           break;
         case 3:         // Channel A3
           //Serial.print(muxStateforNextInterrupt);
