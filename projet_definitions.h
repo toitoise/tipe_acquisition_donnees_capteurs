@@ -20,11 +20,10 @@ DR=1 : 16 SPS           DR=5 : 250 SPS
 DR=2 : 32 SPS           DR=6 : 450 SPS
 DR=3 : 64 SPS           DR=7 : 860 SPS
 ********************************************/
-const short sample_rate[5]      ={ 8,  16, 32, 64, 128, 250, 475, 860 };   // Valeurs en Hz
-const short sample_rate_prog[5] ={ 0,   1,  2,  3,   4,   5,   6,   7 };   // Valeurs à programmer
+const short sample_rate[]      ={ 8,  16, 32, 64, 128, 250, 475, 860 };   // Valeurs en Hz
+const short sample_rate_prog[] ={ 0,   1,  2,  3,   4,   5,   6,   7 };   // Valeurs à programmer
 #define sample_rate_sizeTab sizeof(sample_rate) / sizeof( short)
-#define DEFAULT_RATE_DIFFERENTIAL 2           // 32HZ   
-
+#define DEFAULT_RATE_DIFFERENTIAL 4           // 128   
 
 //----------------------------------------------------------------
 //---------------------------GAIN---------------------------------
@@ -38,8 +37,8 @@ const short sample_rate_prog[5] ={ 0,   1,  2,  3,   4,   5,   6,   7 };   // Va
 16 (gain = 16)  ± 0.256 volts
 ********************************************/
 //                           0       1       2       3       4       5
-const float  gain_value[6]={6.144 , 4.096 , 2.048 , 1.024 , 0.512 , 0.256};  // Valeurs en Volts +/-
-const uint8_t gain_prog[6]={  0   ,   1   ,   2   ,   4   ,   8   ,  16  };  // Valeurs à programmer
+const float  gain_value[]={6.144 , 4.096 , 2.048 , 1.024 , 0.512 , 0.256};  // Valeurs en Volts +/-
+const uint8_t gain_prog[]={  0   ,   1   ,   2   ,   4   ,   8   ,  16  };  // Valeurs à programmer
 #define gain_value_sizeTab sizeof(gain_value) / sizeof(float)
 #define DEFAULT_GAIN_DIFFERENTIAL   2    // 2.048 volts (better for Differential mode)
 

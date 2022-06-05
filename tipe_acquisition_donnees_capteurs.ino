@@ -96,15 +96,16 @@ void loop() {
       // Mode Single Ended
       switch (muxStateforNextInterrupt){
         case 0:         // Channel A0-A1 (Differentiel)
-          //Serial.print(muxStateforNextInterrupt);
           CAN_value_A0_A1=ADS.readADC_Differential_0_1(); // Récupère la valeur du CAN A0-A1
           epoch_RTC = RTC.getEpoch();                     // Récupère le temps courant
           Serial.print(epoch_RTC);Serial.print(",");      // Envoi la date sur le lien serie
           Serial.print(CAN_value_A0_A1);Serial.print(",");// envoi la valeur sur le lien serie
+          muxStateforNextInterrupt=1;
           break;  
         case 1:         // Channel A2-A3    (Differentiel)
           CAN_value_A2_A3=ADS.readADC_Differential_2_3(); // Récupère la valeur du CAN A2-A3
           Serial.println(CAN_value_A2_A3);                // Envoi la veleur sur le lien serie
+          muxStateforNextInterrupt=0;
           break;   
         default:
           Serial.println("ERROR: Channel incompatible avec le mode DIFFERENTIAL selectionné");
